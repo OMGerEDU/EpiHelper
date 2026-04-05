@@ -2,7 +2,7 @@ import { app, BrowserWindow, WebContentsView, ipcMain, shell } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import Store from 'electron-store';
-import { CDPManager } from './cdp-manager';
+import { CDPManager, initCDPManager } from './cdp-manager';
 import { setupNetworkInterceptor } from './network-interceptor';
 import { IPC } from '../shared/ipc-channels';
 import { DEFAULT_PROTECTIONS } from '../shared/constants';
@@ -84,8 +84,9 @@ function createTab(url = 'about:blank'): number {
   const tabId = view.webContents.id;
   tabs.set(tabId, { view, url, title: 'New Tab' });
 
-  // Attach CDP protections
-  cdpManager.attach(view.webContents, getSettings());
+  // Attach CDP protections (setupAutoAttach covers this, but explicit attach
+  // ensures the session is ready before the first loadURL below)
+  cdpManager.attach(view.webContents).catch(() => {});
 
   // Track navigation
   view.webContents.on('did-navigate', (_e, navUrl) => {
@@ -178,6 +179,10 @@ function setupIPC(): void {
   ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<Protections>) => {
     const current = getSettings();
     store.set('settings', { ...current, ...patch });
+    // Propagate protection changes to all open tabs
+    for (const { view } of tabs.values()) {
+      cdpManager.applyProtectionSettings(view.webContents).catch(() => {});
+    }
   });
 
   ipcMain.handle(IPC.SITE_RULES_GET, () => getSiteRules());
@@ -238,12 +243,18 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window);
   });
 
-  // Initialize CDP manager with flash detection callback
-  cdpManager = new CDPManager((event: FlashEvent) => {
-    if (mainWindow) {
-      mainWindow.webContents.send(IPC.FLASH_DETECTED, event);
-    }
-  });
+  // Initialize CDP manager with flash detection callback and settings getter
+  cdpManager = initCDPManager(
+    (event: FlashEvent) => {
+      if (mainWindow) {
+        mainWindow.webContents.send(IPC.FLASH_DETECTED, event);
+      }
+    },
+    getSettings,
+  );
+
+  // Auto-attach CDP to every new WebContents (covers tabs, subframes, etc.)
+  cdpManager.setupAutoAttach();
 
   // Set up network-level GIF blocking (reads settings lazily on every request)
   setupNetworkInterceptor(() => getSettings().gifBlocking, isWhitelisted);
