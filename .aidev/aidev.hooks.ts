@@ -86,6 +86,16 @@ export async function afterEachTask(
       try {
         await vm.updateStatus(nextId, 'open');
         vm.log.info(`Auto-cascade: task ${nextId} is now open`);
+        // Ensure the start tag is present so aidev picks it up
+        try {
+          const apiKey = (context.config as any).CLICKUP_API_KEY || (context.config as any).CLICKUP_API;
+          if (apiKey) {
+            await fetch(`https://api.clickup.com/api/v2/task/${nextId}/tag/start`, {
+              method: 'POST',
+              headers: { Authorization: apiKey },
+            });
+          }
+        } catch { /* non-fatal */ }
         await vm.postComment(nextId, `▶ Unlocked by completion of "${context.task.name}" — ready to implement`);
       } catch (err: any) {
         vm.log.warn(`Auto-cascade failed: ${err?.message}`);
