@@ -5,8 +5,17 @@
 
 // ── Roadmap (task name → next ClickUp task ID) ────────────────────────────────
 const ROADMAP: Record<string, string> = {
-  'Phase 0 — Project Scaffold':                    '86ex54bfe',
-  'Phase 1 — Core CDP Protections':                '86ex54bfq',
+  // ── Phase 0 ────────────────────────────────────────────────────────────────
+  'Phase 0 — Project Scaffold':                                          '86ex56g2k',
+
+  // ── Phase 1 sub-tasks (sequential) ────────────────────────────────────────
+  'Phase 1.1 — CDP Manager: Attach + prefers-reduced-motion':            '86ex56g2m',
+  'Phase 1.2 — Injected Script Bundle (raf-limiter, video-controller, css-enforcer)': '86ex56g2q',
+  'Phase 1.3 — GIF & Animated Image Blocker':                            '86ex56g2r',
+  'Phase 1.4 — IPC Channels & Settings Bridge':                          '86ex56g2t',
+  'Phase 1.5 — Integration: Wire All Protections into Main Process':     '86ex54bfq',
+
+  // ── Phase 2–5 (top-level phases) ──────────────────────────────────────────
   'Phase 2 — Flash Detection (WCAG 2.3.1)':        '86ex54bft',
   'Phase 3 — Canvas, WebGL, Overlay & Site Rules': '86ex54bpa',
   'Phase 4 — Windows Packaging & Polish':          '86ex54bpd',
