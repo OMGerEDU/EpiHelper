@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flash Test: 3 Hz (boundary — should NOT trigger)</title>
+  <style>body { margin: 0; background: #888; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: sans-serif; }</style>
+</head>
+<body>
+  <h2>Flash Test: 3 Hz (boundary)</h2>
+  <p>Expected: Flash protection should NOT trigger (3 Hz = WCAG limit, not over)</p>
+  <canvas id="c" width="400" height="300" data-expected-trigger="false" data-hz="3"></canvas>
+  <script>
+    // 3 Hz = 3 flashes/sec = 6 transitions/sec
+    const TRANSITIONS_PER_SEC = 6;
+    const INTERVAL = 1000 / TRANSITIONS_PER_SEC;
+    const ctx = document.getElementById('c').getContext('2d');
+    let state = 0;
+    let lastTime = null;
+
+    function draw(ts) {
+      if (lastTime === null) lastTime = ts;
+      const elapsed = ts - lastTime;
+
+      if (elapsed >= INTERVAL) {
+        state = 1 - state;
+        lastTime = ts - (elapsed % INTERVAL);
+      }
+
+      ctx.fillStyle = state === 0 ? '#000000' : '#ffffff';
+      ctx.fillRect(0, 0, 400, 300);
+      requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>

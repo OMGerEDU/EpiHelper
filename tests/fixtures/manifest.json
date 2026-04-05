@@ -1,0 +1,25 @@
+{
+  "fixtures": [
+    {
+      "file": "flash-3hz.html",
+      "description": "3 Hz general flash — boundary case, should NOT trigger",
+      "shouldTrigger": false,
+      "expectedLatencyMs": null,
+      "type": "general"
+    },
+    {
+      "file": "flash-4hz.html",
+      "description": "4 Hz general flash — exceeds WCAG limit, SHOULD trigger",
+      "shouldTrigger": true,
+      "expectedLatencyMs": 1500,
+      "type": "general"
+    },
+    {
+      "file": "flash-red-saturated.html",
+      "description": "2 Hz red flash — WCAG red flash criterion, SHOULD trigger",
+      "shouldTrigger": true,
+      "expectedLatencyMs": 2000,
+      "type": "red-flash"
+    }
+  ]
+}

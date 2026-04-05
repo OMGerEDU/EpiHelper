@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+release/
+.env.*
+*.log
+*.aidev.instructions.md
+*.aidev.task.json
+aidev.tasks.json
+.aidev/assets/

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flash Test: Red Flash (SHOULD TRIGGER — WCAG red flash criterion)</title>
+  <style>body { margin: 0; background: #888; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: sans-serif; }</style>
+</head>
+<body>
+  <h2>Red Flash Test: 2 Hz</h2>
+  <p>Expected: Red flash protection SHOULD trigger (red R/(R+G+B) >= 0.8)</p>
+  <canvas id="c" width="400" height="300" data-expected-trigger="true" data-type="red-flash"></canvas>
+  <script>
+    // Red flash: alternates between black and saturated red
+    // Red: rgb(255, 0, 0) -> R/(R+G+B) = 255/255 = 1.0
+    // At 2 Hz = 4 transitions/sec
+    const INTERVAL = 1000 / 4;
+    const ctx = document.getElementById('c').getContext('2d');
+    let state = 0;
+    let lastTime = null;
+
+    function draw(ts) {
+      if (lastTime === null) lastTime = ts;
+      const elapsed = ts - lastTime;
+
+      if (elapsed >= INTERVAL) {
+        state = 1 - state;
+        lastTime = ts - (elapsed % INTERVAL);
+      }
+
+      // Black (#000000) vs saturated red (#FF0000)
+      ctx.fillStyle = state === 0 ? '#000000' : '#ff0000';
+      ctx.fillRect(0, 0, 400, 300);
+      requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>

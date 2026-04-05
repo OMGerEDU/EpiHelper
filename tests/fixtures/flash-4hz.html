@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flash Test: 4 Hz (SHOULD TRIGGER protection)</title>
+  <style>body { margin: 0; background: #888; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: sans-serif; }</style>
+</head>
+<body>
+  <h2>Flash Test: 4 Hz</h2>
+  <p>Expected: Flash protection SHOULD trigger (4 Hz > WCAG 3 Hz limit)</p>
+  <canvas id="c" width="400" height="300" data-expected-trigger="true" data-hz="4"></canvas>
+  <script>
+    // 4 Hz = 4 flashes/sec = 8 transitions/sec
+    // Each transition interval = 1000/8 = 125ms
+    const TRANSITIONS_PER_SEC = 8;
+    const INTERVAL = 1000 / TRANSITIONS_PER_SEC;
+    const ctx = document.getElementById('c').getContext('2d');
+    let state = 0;
+    let lastTime = null;
+
+    function draw(ts) {
+      if (lastTime === null) lastTime = ts;
+      const elapsed = ts - lastTime;
+
+      if (elapsed >= INTERVAL) {
+        state = 1 - state;
+        lastTime = ts - (elapsed % INTERVAL); // stay accurate
+      }
+
+      ctx.fillStyle = state === 0 ? '#000000' : '#ffffff';
+      ctx.fillRect(0, 0, 400, 300);
+      requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>
