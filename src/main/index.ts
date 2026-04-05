@@ -65,7 +65,7 @@ function sendTabState(tabId: number): void {
 }
 
 // ── Tab management ────────────────────────────────────────────────────────────
-const CHROME_HEIGHT = 68; // px reserved for the browser chrome UI
+const CHROME_HEIGHT = 76; // px reserved for the browser chrome UI (must match --chrome-h in styles.css)
 
 function createTab(url = 'about:blank'): number {
   if (!mainWindow) throw new Error('No main window');
@@ -245,8 +245,8 @@ app.whenReady().then(() => {
     }
   });
 
-  // Set up network-level GIF blocking
-  setupNetworkInterceptor(isWhitelisted);
+  // Set up network-level GIF blocking (reads settings lazily on every request)
+  setupNetworkInterceptor(() => getSettings().gifBlocking, isWhitelisted);
 
   setupIPC();
   createMainWindow();

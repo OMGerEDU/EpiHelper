@@ -3,6 +3,9 @@ import { Worker } from 'worker_threads';
 import path from 'path';
 import { SCREENCAST } from '../shared/constants';
 import type { Protections, FlashEvent } from '../shared/types';
+import rafLimiterSrc from 'virtual:injected:raf-limiter';
+import videoControllerSrc from 'virtual:injected:video-controller';
+import cssEnforcerSrc from 'virtual:injected:css-enforcer';
 
 type FlashCallback = (event: FlashEvent) => void;
 
@@ -48,11 +51,13 @@ export class CDPManager {
       });
     }
 
-    // Build the injected script bundle
+    // Build the injected script bundle and register it for every new document
     const injectedScripts = this.buildInjectedBundle(protections);
-    await dbg.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
-      source: injectedScripts,
-    });
+    if (injectedScripts) {
+      await dbg.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
+        source: injectedScripts,
+      });
+    }
 
     // Start screencasting for flash detection
     if (protections.flashDetection) {
@@ -93,29 +98,23 @@ export class CDPManager {
     const parts: string[] = [];
 
     if (protections.reducedMotion) {
-      // css-enforcer (belt-and-suspenders fallback)
-      parts.push(this.readInjected('css-enforcer'));
+      // Belt-and-suspenders CSS fallback (CDP setEmulatedMedia is the primary mechanism)
+      parts.push(cssEnforcerSrc);
     }
+
     if (protections.rafLimit) {
-      // Replace placeholder with actual FPS value
-      parts.push(
-        this.readInjected('raf-limiter').replace(
-          '__EPILEPSY_RAF_FPS__',
-          String(protections.rafTargetFps ?? 24)
-        )
-      );
+      // Set the FPS cap as a window global before the limiter IIFE reads it.
+      // This avoids brittle string replacement on the compiled source.
+      const fps = protections.rafTargetFps ?? 24;
+      parts.push(`window.__EPILEPSY_RAF_FPS__ = ${fps};`);
+      parts.push(rafLimiterSrc);
     }
+
     if (protections.videoAutopause) {
-      parts.push(this.readInjected('video-controller'));
+      parts.push(videoControllerSrc);
     }
 
     return parts.join('\n;\n');
-  }
-
-  private readInjected(name: string): string {
-    // In production, these are bundled as strings by electron-vite
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(`../injected/${name}.js`);
   }
 
   destroy(): void {

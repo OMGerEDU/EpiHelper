@@ -4,14 +4,23 @@ import { session } from 'electron';
 const STATIC_GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI=';
 
 type SiteWhitelistFn = (url: string) => boolean;
+type GifBlockingEnabledFn = () => boolean;
 
-export function setupNetworkInterceptor(isWhitelisted: SiteWhitelistFn): void {
+export function setupNetworkInterceptor(
+  isGifBlockingEnabled: GifBlockingEnabledFn,
+  isWhitelisted: SiteWhitelistFn,
+): void {
   session.defaultSession.webRequest.onBeforeRequest(
     { urls: ['*://*/*'] },
     (details, callback) => {
+      // Skip entirely if GIF blocking is turned off in settings
+      if (!isGifBlockingEnabled()) {
+        callback({});
+        return;
+      }
+
       const url = details.url.toLowerCase();
 
-      // Block animated GIFs for non-whitelisted sites
       const isGif =
         (details.resourceType === 'image' && url.includes('.gif')) ||
         url.endsWith('.gif');
