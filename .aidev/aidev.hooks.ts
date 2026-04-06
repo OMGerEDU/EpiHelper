@@ -48,6 +48,37 @@ const PROJECT_CONTEXT = `
 - DANGER_AREA_FRACTION = 0.25 (341×256px at 1024×768 reference)
 - RED_RATIO_THRESHOLD = 0.8
 
+### Medical basis for thresholds (docs/research/02-medical-research.md)
+- 3 Hz threshold: derived from ITC Guidelines (Harding & Jeavons 1994) → Harding & Binnie (2002) → OFCOM (2005) → WCAG 2.0 (2008)
+- 3 Hz is a *regulatory* lower bound, not a biological safety guarantee — highly sensitive individuals can seize below 3 Hz
+- Peak danger zone: 15–25 Hz (highest photoparoxysmal response / PPR probability)
+- Luminance delta 0.10: Michelson contrast >20% is the clinical lower bound of risk; 0.10 is the conservative detection floor
+- Red ratio 0.80: saturated red flickering is 2–3× more epileptogenic than other colors (L-cone + magnocellular → thalamocortical loop)
+- Danger area 25% of 10° visual field: stimuli subtending >10° of visual angle significantly increase seizure risk; full-screen flash covers 30–50° — extremely dangerous
+- Prevalence: ~1 in 4,000 general population; 30–40% of juvenile myoclonic epilepsy patients; peak onset ages 7–19
+- Risk multipliers: sleep deprivation 2–3×; saturated red vs other colors 2–3×; covering one eye dramatically reduces risk
+- Pokémon incident (1997): 685 children hospitalized from red/blue alternating flashes at ~12 Hz
+- Autoplay video (TikTok, Reels, Stories) = highest-risk modern use case — no chance to avert gaze
+
+### Protection priority order (medical basis)
+1. GIF blocking — uncontrolled frequency; no user anticipation
+2. CSS prefers-reduced-motion injection — covers most CSS animations (WCAG 2.3.3)
+3. Video autopause — autoplay = no anticipation window; clinical recommendation
+4. Real-time flash detection (CDP screencast) — only Harding-class tool in market
+5. Red channel flash detection — 2–3× more dangerous than general flash
+6. Spatial pattern detection — independent epileptogenic trigger (3–8 cycles/degree)
+7. Brightness/contrast overlay — individual threshold accommodation
+
+### UI/UX design rules (docs/research/03-uiux-guidelines.md)
+- NEVER use saturated red (#FF0000) or red strobe in browser chrome — red is epileptogenic
+- Flash alert banner: amber/yellow background (not red), persistent (never auto-dismiss during alert)
+- All protections ON by default — sleep deprivation and individual variation make risk unpredictable
+- Show "page paused" state explicitly — silent blocking causes user panic
+- No pulsing or blinking badge states — color + text only
+- Browser chrome animations: max duration 150–300ms, never loop faster than 3/sec, no flash/strobe
+- Safe chrome palette: muted blues/grays, soft backgrounds, amber (#F59E0B) for warnings
+- WCAG targets: 2.3.1 (Level A required) + 2.3.3 + 2.2.2 (AAA preferred for browser chrome)
+
 ### Coding rules
 - NEVER: nodeIntegration:true, webSecurity:false, hardcoded IPC strings, global scope leaks in injected scripts
 - ALWAYS: contextIsolation:true, aria-labels on all interactive elements (users have epilepsy), Worker error handling
