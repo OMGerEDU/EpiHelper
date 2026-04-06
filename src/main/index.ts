@@ -1,4 +1,4 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, WebContentsView, ipcMain, session, shell } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import Store from 'electron-store';
@@ -21,6 +21,7 @@ const store = new Store<{
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let mainWindow: BrowserWindow | null = null;
+let nextTabSessionId = 1;
 
 // Map of tabId → { view, url, title }
 const tabs = new Map<number, { view: WebContentsView; url: string; title: string }>();
@@ -36,17 +37,6 @@ function getSettings(): Protections {
 
 function getSiteRules(): SiteRule[] {
   return store.get('siteRules');
-}
-
-function isWhitelisted(url: string): boolean {
-  const rules = getSiteRules();
-  return rules.some((r) => r.mode === 'whitelist' && urlMatchesPattern(url, r.pattern));
-}
-
-function urlMatchesPattern(url: string, pattern: string): boolean {
-  // Simple glob-style matching: *.example.com or https://example.com/*
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-  return new RegExp(escaped).test(url);
 }
 
 function sendTabState(tabId: number): void {
@@ -70,8 +60,12 @@ const CHROME_HEIGHT = 76; // px reserved for the browser chrome UI (must match -
 function createTab(url = 'about:blank'): number {
   if (!mainWindow) throw new Error('No main window');
 
+  const tabSession = session.fromPartition(`epihelper-tab-${nextTabSessionId++}`);
+  setupNetworkInterceptor(tabSession);
+
   const view = new WebContentsView({
     webPreferences: {
+      session: tabSession,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -244,9 +238,6 @@ app.whenReady().then(() => {
       mainWindow.webContents.send(IPC.FLASH_DETECTED, event);
     }
   });
-
-  // Set up network-level GIF blocking (reads settings lazily on every request)
-  setupNetworkInterceptor(() => getSettings().gifBlocking, isWhitelisted);
 
   setupIPC();
   createMainWindow();
