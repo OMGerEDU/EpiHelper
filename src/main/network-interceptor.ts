@@ -1,4 +1,4 @@
-import { session } from 'electron';
+import type { Session } from 'electron';
 
 // 1x1 transparent GIF — served in place of animated GIFs when blocking is enabled
 const STATIC_GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI=';
@@ -7,10 +7,25 @@ type SiteWhitelistFn = (url: string) => boolean;
 type GifBlockingEnabledFn = () => boolean;
 
 export function setupNetworkInterceptor(
+  targetSession: Session,
   isGifBlockingEnabled: GifBlockingEnabledFn,
   isWhitelisted: SiteWhitelistFn,
 ): void {
-  session.defaultSession.webRequest.onBeforeRequest(
+  const hookedSessions = (setupNetworkInterceptor as typeof setupNetworkInterceptor & {
+    __hookedSessions__?: WeakSet<Session>;
+  }).__hookedSessions__ ?? new WeakSet<Session>();
+
+  (setupNetworkInterceptor as typeof setupNetworkInterceptor & {
+    __hookedSessions__?: WeakSet<Session>;
+  }).__hookedSessions__ = hookedSessions;
+
+  if (hookedSessions.has(targetSession)) {
+    return;
+  }
+
+  hookedSessions.add(targetSession);
+
+  targetSession.webRequest.onBeforeRequest(
     { urls: ['*://*/*'] },
     (details, callback) => {
       // Skip entirely if GIF blocking is turned off in settings

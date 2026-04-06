@@ -7,6 +7,9 @@ import { setupNetworkInterceptor } from './network-interceptor';
 import { IPC } from '../shared/ipc-channels';
 import { DEFAULT_PROTECTIONS } from '../shared/constants';
 import type { Protections, SiteRule, TabState, FlashEvent } from '../shared/types';
+import rafLimiterSrc from 'virtual:injected:raf-limiter';
+import videoControllerSrc from 'virtual:injected:video-controller';
+import cssEnforcerSrc from 'virtual:injected:css-enforcer';
 
 // ── Persistent store ─────────────────────────────────────────────────────────
 const store = new Store<{
@@ -64,6 +67,24 @@ function sendTabState(tabId: number): void {
   mainWindow.webContents.send(IPC.TAB_STATE_UPDATE, state);
 }
 
+function attachProtections(view: WebContentsView): void {
+  setupNetworkInterceptor(view.webContents.session, () => getSettings().gifBlocking, isWhitelisted);
+  void cdpManager.attach(view.webContents, getSettings());
+}
+
+function reapplyProtectionsToAllTabs(): void {
+  const settings = getSettings();
+
+  for (const [tabId, { view }] of tabs) {
+    void cdpManager.apply(view.webContents, settings);
+    sendTabState(tabId);
+
+    if (!view.webContents.isLoadingMainFrame() && view.webContents.getURL() !== 'about:blank') {
+      view.webContents.reload();
+    }
+  }
+}
+
 // ── Tab management ────────────────────────────────────────────────────────────
 const CHROME_HEIGHT = 76; // px reserved for the browser chrome UI (must match --chrome-h in styles.css)
 
@@ -84,8 +105,7 @@ function createTab(url = 'about:blank'): number {
   const tabId = view.webContents.id;
   tabs.set(tabId, { view, url, title: 'New Tab' });
 
-  // Attach CDP protections
-  cdpManager.attach(view.webContents, getSettings());
+  attachProtections(view);
 
   // Track navigation
   view.webContents.on('did-navigate', (_e, navUrl) => {
@@ -178,6 +198,8 @@ function setupIPC(): void {
   ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<Protections>) => {
     const current = getSettings();
     store.set('settings', { ...current, ...patch });
+    reapplyProtectionsToAllTabs();
+    return getSettings();
   });
 
   ipcMain.handle(IPC.SITE_RULES_GET, () => getSiteRules());
@@ -243,10 +265,11 @@ app.whenReady().then(() => {
     if (mainWindow) {
       mainWindow.webContents.send(IPC.FLASH_DETECTED, event);
     }
+  }, {
+    cssEnforcer: cssEnforcerSrc,
+    rafLimiter: rafLimiterSrc,
+    videoController: videoControllerSrc,
   });
-
-  // Set up network-level GIF blocking (reads settings lazily on every request)
-  setupNetworkInterceptor(() => getSettings().gifBlocking, isWhitelisted);
 
   setupIPC();
   createMainWindow();
