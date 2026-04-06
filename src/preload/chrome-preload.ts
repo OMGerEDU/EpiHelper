@@ -25,12 +25,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   dismissAlert: (tabId: number) => ipcRenderer.invoke(IPC.DISMISS_ALERT, tabId),
 
   // Event listeners (main → renderer)
-  onFlashDetected: (cb: (event: FlashEvent) => void) => {
-    ipcRenderer.on(IPC.FLASH_DETECTED, (_e, event) => cb(event));
-    return () => ipcRenderer.removeAllListeners(IPC.FLASH_DETECTED);
+  onFlashAlert: (cb: (event: FlashEvent) => void) => {
+    ipcRenderer.on(IPC.FLASH_ALERT, (_e, event) => cb(event));
+    return () => ipcRenderer.removeAllListeners(IPC.FLASH_ALERT);
   },
-  onTabStateUpdate: (cb: (state: TabState) => void) => {
-    ipcRenderer.on(IPC.TAB_STATE_UPDATE, (_e, state) => cb(state));
-    return () => ipcRenderer.removeAllListeners(IPC.TAB_STATE_UPDATE);
+  onProtectionStatus: (cb: (state: TabState) => void) => {
+    ipcRenderer.on(IPC.PROTECTION_STATUS, (_e, state) => cb(state));
+    return () => ipcRenderer.removeAllListeners(IPC.PROTECTION_STATUS);
   },
 });

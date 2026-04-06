@@ -19,7 +19,7 @@ export default function App(): JSX.Element {
 
   // Subscribe to tab state updates from main process
   useEffect(() => {
-    const unsub = api.onTabStateUpdate((state: TabState) => {
+    const unsub = api.onProtectionStatus((state: TabState) => {
       setTabs((prev) => {
         const exists = prev.find((t) => t.tabId === state.tabId);
         if (exists) {
@@ -37,7 +37,7 @@ export default function App(): JSX.Element {
 
   // Subscribe to flash detection alerts
   useEffect(() => {
-    const unsub = api.onFlashDetected((event: FlashEvent) => {
+    const unsub = api.onFlashAlert((event: FlashEvent) => {
       setFlashAlert(event);
     });
     return unsub;

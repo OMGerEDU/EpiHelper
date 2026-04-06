@@ -2,8 +2,8 @@
 
 export const IPC = {
   // Main → Renderer: protection events
-  FLASH_DETECTED: 'protection:flash-detected',
-  TAB_STATE_UPDATE: 'protection:tab-state-update',
+  FLASH_ALERT: 'protection:flash-alert',
+  PROTECTION_STATUS: 'protection:status',
 
   // Renderer → Main: user actions
   NAVIGATE: 'browser:navigate',

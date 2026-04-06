@@ -61,7 +61,7 @@ function sendTabState(tabId: number): void {
     lastFlashEvent: null,
     isBlocked: false,
   };
-  mainWindow.webContents.send(IPC.TAB_STATE_UPDATE, state);
+  mainWindow.webContents.send(IPC.PROTECTION_STATUS, state);
 }
 
 // ── Tab management ────────────────────────────────────────────────────────────
@@ -175,9 +175,20 @@ function setupIPC(): void {
   ipcMain.handle(IPC.TAB_SWITCH, (_e, tabId: number) => switchToTab(tabId));
 
   ipcMain.handle(IPC.SETTINGS_GET, () => getSettings());
-  ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<Protections>) => {
+  ipcMain.handle(IPC.SETTINGS_SET, async (_e, patch: Partial<Protections>) => {
     const current = getSettings();
-    store.set('settings', { ...current, ...patch });
+    const nextSettings = { ...current, ...patch };
+    store.set('settings', nextSettings);
+
+    await Promise.all(
+      [...tabs.values()].map(({ view }) => cdpManager.applySettings(view.webContents, nextSettings))
+    );
+
+    for (const tabId of tabs.keys()) {
+      sendTabState(tabId);
+    }
+
+    return nextSettings;
   });
 
   ipcMain.handle(IPC.SITE_RULES_GET, () => getSiteRules());
@@ -241,7 +252,7 @@ app.whenReady().then(() => {
   // Initialize CDP manager with flash detection callback
   cdpManager = new CDPManager((event: FlashEvent) => {
     if (mainWindow) {
-      mainWindow.webContents.send(IPC.FLASH_DETECTED, event);
+      mainWindow.webContents.send(IPC.FLASH_ALERT, event);
     }
   });
 
